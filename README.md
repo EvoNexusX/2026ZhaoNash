@@ -13,8 +13,8 @@ Consider a problem with $M$ decision makers. Decision maker $m$ has objective su
 | $f_i^{\max}$ | Maximum value of objective $i$ in the feasible range (estimated from PF and the candidate set) |
 | $\text{offset}(\mathbf{x}, \mathbf{y})$ | $\max_i \lvert f_i(\mathbf{x}) - f_i(\mathbf{y}) \rvert / f_i^{\max}$ |
 | $\text{offset}(\mathbf{x}, PF_m)$ | $\min_{\mathbf{y} \in PF_m} \text{offset}(\mathbf{x}, \mathbf{y})$ |
-| $\text{max_offset}_m$ | Maximum offset from other DMs' PFs to $PF_m$ |
-| $\varepsilon_m(\mathbf{v})$ | Concession: $\text{offset}(\mathbf{v}, PF_m) / \text{max_offset}_m$ |
+| $\text{max offset}_m$ | Maximum offset from other DMs' PFs to $PF_m$ |
+| $\varepsilon_m(\mathbf{v})$ | Concession: $\text{offset}(\mathbf{v}, PF_m) / \text{max offset}_m$ |
 | $\varphi(\varepsilon)$ | Penalty: $\max(0,\, \varepsilon - \varepsilon_m^{\text{threshold}})$ |
 | $\mu_m^{\text{ref}}$ | Maximum Euclidean distance from any point on other DMs' PFs to $PF_m$ (defaults to 1 when zero) |
 | $\mu_m$ | Convergence measure based on IGD or GD |
@@ -67,7 +67,7 @@ disp(details.L_m);
 
 ### Input Layout
 
-- Columns of `PopObj` and `PF` are ordered by decision maker. With `dm_num` decision makers and $k$ objectives each, the total number of columns is $M = \text{dm_num} \times k$.
+- Columns of `PopObj` and `PF` are ordered by decision maker. With `dm_num` decision makers and $k$ objectives each, the total number of columns is $M = \text{dm num} \times k$.
 - Decision maker $m$ uses columns `(m-1)*k+1 : m*k`.
 - `epsilon_values` must have length `dm_num`.
 - `lambda` must be a non-negative scalar (shared by all decision makers) or a `[1 x dm_num]` vector.
