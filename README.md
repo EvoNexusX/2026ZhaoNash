@@ -1,6 +1,6 @@
 # Nash Score
 
-Nash Score is a performance metric for **Multi-Party Multi-Objective Optimization (MPMOO)**. It combines per-decision-maker convergence quality with concession-based penalties and aggregates individual utilities via a product formulation.
+Nash Score is a performance metric for **Multi-Party Multi-Objective Optimization Problem(MPMOP)**. It combines per-decision-maker convergence quality with concession-based penalties and aggregates individual utilities via a product formulation.
 
 **Higher scores are better.** The returned score is the raw product of decision-maker utilities and is **not** rescaled or normalized afterward.
 
@@ -25,7 +25,7 @@ For each decision maker $m$:
 1. **Point penalty:** $\ell_m^{\text{pen}}(\mathbf{v}) = \mu_m^{\text{ref}} \cdot \varphi(\varepsilon_m(\mathbf{v}))$
 2. **Population penalty:** $L_m^{\text{pen}}(P) = \mathrm{mean}_{\mathbf{v} \in P}(\ell_m^{\text{pen}}(\mathbf{v}))$
 3. **Total loss:** $L_m(P) = \mu_m(P) + \lambda_m \cdot L_m^{\text{pen}}(P)$
-4. **Utility:** $\text{utility}_m = \exp(-L_m(P))$
+4. **Utility:** $\text{utility}_m = C-L_m(P)$
 
 **Nash Score:**
 
@@ -39,11 +39,6 @@ The output is this product directly. No additional normalization is applied to t
 |------|-------------|
 | `nash_score.m` | Main entry point: compute Nash Score from a candidate set and PF |
 | `compute_offset_to_pf.m` | Helper: normalized Chebyshev offset from points to a PF |
-
-## Requirements
-
-- MATLAB R2016b or later
-- Statistics and Machine Learning Toolbox (`pdist2`)
 
 ## Quick Start
 
