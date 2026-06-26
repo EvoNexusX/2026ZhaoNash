@@ -29,7 +29,7 @@ For each decision maker $m$:
 
 **Nash Score:**
 
-$$\text{Nash Score} = \prod_{m=1}^{M} u_m$$
+$$\Psi_\mathrm{NP} = \prod_{m=1}^{M} u_m$$
 
 ## Files
 
