@@ -23,7 +23,7 @@ Consider a problem with $M$ decision makers. Decision maker $m$ has objective su
 For each decision maker $m$:
 
 1. **Point penalty:** $\ell_m^{\text{pen}}(\mathbf{v}) = \mu_m^{\text{ref}} \cdot \varphi(\varepsilon_m(\mathbf{v}))$
-2. **Population penalty:** $L_m^{\text{pen}}(P) = \mathrm{mean}_{\mathbf{v} \in P}(\ell_m^{\text{pen}}(\mathbf{v}))$
+2. **Population penalty:** $L_m^{\text{pen}}(P) = \sum_{\mathbf{v} \in P}(\ell_m^{\text{pen}}(\mathbf{v}))$
 3. **Total loss:** $L_m(P) = \mu_m(P) + \lambda_m \cdot L_m^{\text{pen}}(P)$
 4. **Utility:** $\text{utility}_m = \exp(-L_m(P))$
 
