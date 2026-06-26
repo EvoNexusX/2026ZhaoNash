@@ -15,7 +15,7 @@ Consider a problem with $M$ decision makers. Decision maker $m$ has objective su
 | $\text{offset}(\mathbf{x}, PF_m)$ | $\min_{\mathbf{y} \in PF_m} \text{offset}(\mathbf{x}, \mathbf{y})$ |
 | $\text{max offset}_m$ | Maximum offset from other DMs' PFs to $PF_m$ |
 | $\varepsilon_m(\mathbf{v})$ | Concession: $\text{offset}(\mathbf{v}, PF_m) / \text{max offset}_m$ |
-| $\varphi(\varepsilon)$ | Penalty: $\max(0,\, \varepsilon - \varepsilon_m^{\text{threshold}})$ |
+| $\varphi(\varepsilon)$ | Penalty: $\max(0, \varepsilon - \varepsilon_m^{\text{threshold}})$ |
 | $\mu_m^{\text{ref}}$ | Maximum Euclidean distance from any point on other DMs' PFs to $PF_m$ (defaults to 1 when zero) |
 | $\mu_m$ | Convergence measure based on IGD or GD |
 | $\lambda_m$ | User-defined penalty weight for decision maker $m$ |
