@@ -65,26 +65,26 @@ For each decision maker $m$:
 
 1. **Point penalty**
 
-   $$
+   $
    \ell_m^{\text{pen}}(\mathbf{v})
    =
    \mu_m^{\text{ref}}
    \cdot
    \varphi(\varepsilon_m(\mathbf{v}))
-   $$
+   $
 
 2. **Population penalty**
 
-   $$
+   $
    L_m^{\text{pen}}(P)
    =
    \sum_{\mathbf{v}\in P}
    \ell_m^{\text{pen}}(\mathbf{v})
-   $$
+   $
 
 3. **Total loss**
-
-   $$
+   
+   $
    L_m(P)
    =
    \mu_m(P)
@@ -92,25 +92,25 @@ For each decision maker $m$:
    \lambda_m
    \cdot
    L_m^{\text{pen}}(P)
-   $$
+   $
 
-4. **Utility**
+5. **Utility**
 
-   $$
+   $
    u_m = C - L_m(P)
-   $$
+   $
 
 ### Nash Score
 
 The final Nash-product score is
 
-$$
+$
 \boxed{
 \Psi_{\mathrm{NP}}
 =
 \prod_{m=1}^{M}u_m
 }
-$$
+$
 
 ---
 
