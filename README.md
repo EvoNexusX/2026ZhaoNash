@@ -50,34 +50,28 @@ Consider a problem with $M$ decision makers. Decision maker $m$ has objective su
 | $\mu_m$ | Convergence measure based on IGD or GD |
 | $\lambda_m$ | User-defined penalty weight for decision maker $m$ |
 
-For each decision maker $m$, the evaluation consists of the following steps.
+For each decision maker $m$:
 
 ### 1. Point Penalty
-
-The penalty associated with a solution $\mathbf{v}$ is defined as
 
 $$
 \ell_m^{\text{pen}}(\mathbf{v})
 =
 \mu_m^{\text{ref}}
 \cdot
-\varphi\left(\varepsilon_m(\mathbf{v})\right).
+\varphi\left(\varepsilon_m(\mathbf{v})\right)
 $$
 
 ### 2. Population Penalty
-
-For a candidate solution set $P$, the population-level penalty is
 
 $$
 L_m^{\text{pen}}(P)
 =
 \sum_{\mathbf{v}\in P}
-\ell_m^{\text{pen}}(\mathbf{v}).
+\ell_m^{\text{pen}}(\mathbf{v})
 $$
 
 ### 3. Total Loss
-
-The total loss of decision maker $m$ is
 
 $$
 L_m(P)
@@ -86,20 +80,14 @@ L_m(P)
 +
 \lambda_m
 \cdot
-L_m^{\text{pen}}(P).
+L_m^{\text{pen}}(P)
 $$
 
 ### 4. Utility
 
-The utility of decision maker $m$ is defined as
-
 $$
-u_m
-=
-C-L_m(P),
+u_m = C - L_m(P)
 $$
-
-where $C$ is a constant.
 
 ## Nash Score
 
@@ -110,10 +98,7 @@ $$
 \Psi_{\mathrm{NP}}
 =
 \prod_{m=1}^{M}u_m
-}.
 $$
-
-A higher $\Psi_{\mathrm{NP}}$ indicates better overall performance.
 
 ---
 
