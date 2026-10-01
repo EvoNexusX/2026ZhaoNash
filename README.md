@@ -36,69 +36,41 @@ https://arxiv.org/abs/2601.22497
 
 # Metric Definition
 
-Consider a problem with $M$ decision makers. Decision maker $m$ has objective sub-vector $\mathbf{f}^{(m)}(\mathbf{x})$ and Pareto front $PF_m$.
+Consider a problem with $M$ decision makers. Decision maker $m$ has objective sub-vector and Pareto front $PF_m$.
 
 | Symbol | Meaning |
-| :--- | :--- |
+|--------|---------|
 | $f_i^{\max}$ | Maximum value of objective $i$ in the feasible range (estimated from PF and the candidate set) |
-| $\operatorname{offset}(\mathbf{x}, \mathbf{y})$ | $\displaystyle \max_i \frac{|f_i(\mathbf{x})-f_i(\mathbf{y})|}{f_i^{\max}}$ |
-| $\operatorname{offset}(\mathbf{x}, PF_m)$ | $\displaystyle \min_{\mathbf{y}\in PF_m} \operatorname{offset}(\mathbf{x}, \mathbf{y})$ |
-| $\operatorname{max\_offset}_m$ | Maximum offset from other DMs' PFs to $PF_m$ |
-| $\varepsilon_m(\mathbf{v})$ | Concession: $\displaystyle \frac{\operatorname{offset}(\mathbf{v},PF_m)}{\operatorname{max\_offset}_m}$ |
-| $\varphi(\varepsilon)$ | Penalty: $\max(0,\varepsilon-\varepsilon_m^{\text{threshold}})$ |
-| $\mu_m^{\text{ref}}$ | Maximum Euclidean distance from any point on other DMs' PFs to $PF_m$ (defaults to 1 when zero) |
+| $\mathrm{offset}(\mathbf{x}, \mathbf{y})$ | Offset between two points $\mathbf{x}$ and $\mathbf{y}$ |
+| $\mathrm{offset}(\mathbf{x}, PF_m)$ | Minimum offset from point $\mathbf{x}$ to the Pareto front $PF_m$: $\displaystyle \min_{\mathbf{y}\in PF_m} \mathrm{offset}(\mathbf{x}, \mathbf{y})$ |
+| $\mathrm{max\_offset}_m$ | Maximum offset from other DMs' PFs to $PF_m$ |
+| $\varepsilon_m(v)$ | Concession: $\displaystyle \frac{\mathrm{offset}(\mathbf{v}, PF_m)}{\mathrm{max\_offset}_m}$ |
+| $\varphi(\varepsilon)$ | Penalty: $\max\left(0, \varepsilon - \varepsilon_m^{\text{threshold}}\right)$ |
+| $\mu_m^{\text{ref}}$ | Maximum Euclidean distance from any point on other DMs' PFs to $PF_m$ (defaults to ...) |
 | $\mu_m$ | Convergence measure based on IGD or GD |
 | $\lambda_m$ | User-defined penalty weight for decision maker $m$ |
 
-For each decision maker $m$:
-
 ### 1. Point Penalty
 
-$$
-\ell_m^{\text{pen}}(\mathbf{v})
-=
-\mu_m^{\text{ref}}
-\cdot
-\varphi\left(\varepsilon_m(\mathbf{v})\right)
-$$
+$$\ell_m^{\text{pen}}(\mathbf{v}) = \mu_m^{\text{ref}} \cdot \varphi\left(\varepsilon_m(\mathbf{v})\right)$$
 
 ### 2. Population Penalty
 
-$$
-L_m^{\text{pen}}(P)
-=
-\sum_{\mathbf{v}\in P}
-\ell_m^{\text{pen}}(\mathbf{v})
-$$
+$$L_m^{\text{pen}}(P) = \sum_{\mathbf{v}\in P} \ell_m^{\text{pen}}(\mathbf{v})$$
 
 ### 3. Total Loss
 
-$$
-L_m(P)
-=
-\mu_m(P)
-+
-\lambda_m
-\cdot
-L_m^{\text{pen}}(P)
-$$
+$$L_m(P) = \mu_m(P) + \lambda_m \cdot L_m^{\text{pen}}(P)$$
 
 ### 4. Utility
 
-$$
-u_m = C - L_m(P)
-$$
+$$u_m = C - L_m(P)$$
 
-## Nash Score
+### Nash Score
 
 The final Nash-product score is
 
-$$
-\boxed{
-\Psi_{\mathrm{NP}}
-=
-\prod_{m=1}^{M}u_m
-$$
+$$\boxed{\Psi^{\mathrm{NP}} = \prod_{m=1}^{M} u_m}$$
 
 ---
 
