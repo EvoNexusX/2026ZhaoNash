@@ -4,17 +4,6 @@
   <strong>Nash-Product Evaluation for Multi-Party Multi-Objective Optimization</strong>
 </p>
 
-<p align="center">
-  <a href="https://arxiv.org/abs/2601.22497">
-    <img src="https://img.shields.io/badge/arXiv-2601.22497-b31b1b.svg" alt="arXiv">
-  </a>
-  <img src="https://img.shields.io/badge/IEEE%20TEVC-Accepted-success.svg" alt="IEEE TEVC">
-  <img src="https://img.shields.io/badge/MATLAB-Implementation-orange.svg" alt="MATLAB">
-  <a href="https://github.com/EvoNexusX/2026ZhaoNash">
-    <img src="https://img.shields.io/badge/GitHub-Repository-black.svg?logo=github" alt="GitHub">
-  </a>
-</p>
-
 ---
 
 ## 📖 Overview
@@ -52,65 +41,79 @@ Consider a problem with $M$ decision makers. Decision maker $m$ has objective su
 | Symbol | Meaning |
 | :--- | :--- |
 | $f_i^{\max}$ | Maximum value of objective $i$ in the feasible range (estimated from PF and the candidate set) |
-| $\text{offset}(\mathbf{x}, \mathbf{y})$ | $\max_i \lvert f_i(\mathbf{x}) - f_i(\mathbf{y}) \rvert / f_i^{\max}$ |
-| $\text{offset}(\mathbf{x}, PF_m)$ | $\min_{\mathbf{y} \in PF_m} \text{offset}(\mathbf{x}, \mathbf{y})$ |
-| $\text{max offset}_m$ | Maximum offset from other DMs' PFs to $PF_m$ |
-| $\varepsilon_m(\mathbf{v})$ | Concession: $\text{offset}(\mathbf{v}, PF_m) / \text{max offset}_m$ |
-| $\varphi(\varepsilon)$ | Penalty: $\max(0, \varepsilon - \varepsilon_m^{\text{threshold}})$ |
+| $\operatorname{offset}(\mathbf{x}, \mathbf{y})$ | $\displaystyle \max_i \frac{|f_i(\mathbf{x})-f_i(\mathbf{y})|}{f_i^{\max}}$ |
+| $\operatorname{offset}(\mathbf{x}, PF_m)$ | $\displaystyle \min_{\mathbf{y}\in PF_m} \operatorname{offset}(\mathbf{x}, \mathbf{y})$ |
+| $\operatorname{max\_offset}_m$ | Maximum offset from other DMs' PFs to $PF_m$ |
+| $\varepsilon_m(\mathbf{v})$ | Concession: $\displaystyle \frac{\operatorname{offset}(\mathbf{v},PF_m)}{\operatorname{max\_offset}_m}$ |
+| $\varphi(\varepsilon)$ | Penalty: $\max(0,\varepsilon-\varepsilon_m^{\text{threshold}})$ |
 | $\mu_m^{\text{ref}}$ | Maximum Euclidean distance from any point on other DMs' PFs to $PF_m$ (defaults to 1 when zero) |
 | $\mu_m$ | Convergence measure based on IGD or GD |
 | $\lambda_m$ | User-defined penalty weight for decision maker $m$ |
 
-For each decision maker $m$:
+For each decision maker $m$, the evaluation consists of the following steps.
 
-1. **Point penalty**
+### 1. Point Penalty
 
-   $
-   \ell_m^{\text{pen}}(\mathbf{v})
-   =
-   \mu_m^{\text{ref}}
-   \cdot
-   \varphi(\varepsilon_m(\mathbf{v}))
-   $
+The penalty associated with a solution $\mathbf{v}$ is defined as
 
-2. **Population penalty**
+$$
+\ell_m^{\text{pen}}(\mathbf{v})
+=
+\mu_m^{\text{ref}}
+\cdot
+\varphi\left(\varepsilon_m(\mathbf{v})\right).
+$$
 
-   $
-   L_m^{\text{pen}}(P)
-   =
-   \sum_{\mathbf{v}\in P}
-   \ell_m^{\text{pen}}(\mathbf{v})
-   $
+### 2. Population Penalty
 
-3. **Total loss**
-   
-   $
-   L_m(P)
-   =
-   \mu_m(P)
-   +
-   \lambda_m
-   \cdot
-   L_m^{\text{pen}}(P)
-   $
+For a candidate solution set $P$, the population-level penalty is
 
-5. **Utility**
+$$
+L_m^{\text{pen}}(P)
+=
+\sum_{\mathbf{v}\in P}
+\ell_m^{\text{pen}}(\mathbf{v}).
+$$
 
-   $
-   u_m = C - L_m(P)
-   $
+### 3. Total Loss
 
-### Nash Score
+The total loss of decision maker $m$ is
+
+$$
+L_m(P)
+=
+\mu_m(P)
++
+\lambda_m
+\cdot
+L_m^{\text{pen}}(P).
+$$
+
+### 4. Utility
+
+The utility of decision maker $m$ is defined as
+
+$$
+u_m
+=
+C-L_m(P),
+$$
+
+where $C$ is a constant.
+
+## Nash Score
 
 The final Nash-product score is
 
-$
+$$
 \boxed{
 \Psi_{\mathrm{NP}}
 =
 \prod_{m=1}^{M}u_m
-}
-$
+}.
+$$
+
+A higher $\Psi_{\mathrm{NP}}$ indicates better overall performance.
 
 ---
 
