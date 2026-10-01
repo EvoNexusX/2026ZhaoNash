@@ -1,15 +1,56 @@
-# Nash-product evaluation
+# Fairness-Aware Performance Evaluation for Multi-Party Multi-Objective Optimization
 
-Nash-product evaluation is a performance metric framework for **Multi-Party Multi-Objective Optimization (MPMOP)**. It combines per-decision-maker convergence quality with concession-based penalties and aggregates individual utilities to achieve fairness-aware evaluation.
+<p align="center">
+  <strong>Nash-Product Evaluation for Multi-Party Multi-Objective Optimization</strong>
+</p>
 
-**Higher scores are better.** The returned score is the raw product of decision-maker utilities and is **not** rescaled or normalized afterward.
+<p align="center">
+  <a href="https://arxiv.org/abs/2601.22497">
+    <img src="https://img.shields.io/badge/arXiv-2601.22497-b31b1b.svg" alt="arXiv">
+  </a>
+  <img src="https://img.shields.io/badge/IEEE%20TEVC-Accepted-success.svg" alt="IEEE TEVC">
+  <img src="https://img.shields.io/badge/MATLAB-Implementation-orange.svg" alt="MATLAB">
+  <a href="https://github.com/EvoNexusX/2026ZhaoNash">
+    <img src="https://img.shields.io/badge/GitHub-Repository-black.svg?logo=github" alt="GitHub">
+  </a>
+</p>
 
-## Metric Definition
+---
+
+## 📖 Overview
+
+**Nash-product evaluation** is a performance metric framework for **Multi-Party Multi-Objective Optimization (MPMOP)**. It combines per-decision-maker convergence quality with concession-based penalties and aggregates individual utilities to achieve fairness-aware evaluation.
+
+Higher scores are better. The returned score is the raw product of decision-maker utilities and is not rescaled or normalized afterward.
+
+This repository provides the MATLAB implementation of the proposed evaluation framework, together with the benchmark problems used in the experimental studies.
+
+---
+
+## 📄 Paper
+
+This code links to the paper:
+
+**Fairness-Aware Performance Evaluation for Multi-Party Multi-Objective Optimization**
+
+**Authors:** Zifan Zhao, Peilan Xu, Wenjian Luo
+
+**Published in:** *IEEE Transactions on Evolutionary Computation*
+
+**Status:** Accepted for publication
+
+This is the official repository for the paper:
+
+https://arxiv.org/abs/2601.22497
+
+---
+
+# Metric Definition
 
 Consider a problem with $M$ decision makers. Decision maker $m$ has objective sub-vector $\mathbf{f}^{(m)}(\mathbf{x})$ and Pareto front $PF_m$.
 
 | Symbol | Meaning |
-|--------|---------|
+| :--- | :--- |
 | $f_i^{\max}$ | Maximum value of objective $i$ in the feasible range (estimated from PF and the candidate set) |
 | $\text{offset}(\mathbf{x}, \mathbf{y})$ | $\max_i \lvert f_i(\mathbf{x}) - f_i(\mathbf{y}) \rvert / f_i^{\max}$ |
 | $\text{offset}(\mathbf{x}, PF_m)$ | $\min_{\mathbf{y} \in PF_m} \text{offset}(\mathbf{x}, \mathbf{y})$ |
@@ -22,67 +63,73 @@ Consider a problem with $M$ decision makers. Decision maker $m$ has objective su
 
 For each decision maker $m$:
 
-1. **Point penalty:** $\ell_m^{\text{pen}}(\mathbf{v}) = \mu_m^{\text{ref}} \cdot \varphi(\varepsilon_m(\mathbf{v}))$
-2. **Population penalty:** $L_m^{\text{pen}}(P) = \sum_{\mathbf{v} \in P}(\ell_m^{\text{pen}}(\mathbf{v}))$
-3. **Total loss:** $L_m(P) = \mu_m(P) + \lambda_m \cdot L_m^{\text{pen}}(P)$
-4. **Utility:** $u_m = C -L_m(P)$
+1. **Point penalty**
 
-**Nash Score:**
+   $$
+   \ell_m^{\text{pen}}(\mathbf{v})
+   =
+   \mu_m^{\text{ref}}
+   \cdot
+   \varphi(\varepsilon_m(\mathbf{v}))
+   $$
 
-$$\Psi_\mathrm{NP} = \prod_{m=1}^{M} u_m$$
+2. **Population penalty**
 
-## Files
+   $$
+   L_m^{\text{pen}}(P)
+   =
+   \sum_{\mathbf{v}\in P}
+   \ell_m^{\text{pen}}(\mathbf{v})
+   $$
 
-| File | Description |
-|------|-------------|
-| `nash_score.m` | Main entry point: compute Nash Score from a candidate set and PF |
-| `compute_offset_to_pf.m` | Helper: normalized Chebyshev offset from points to a PF |
+3. **Total loss**
 
+   $$
+   L_m(P)
+   =
+   \mu_m(P)
+   +
+   \lambda_m
+   \cdot
+   L_m^{\text{pen}}(P)
+   $$
 
-## Quick Start
+4. **Utility**
 
-```matlab
-addpath('path/to/nash-score');
+   $$
+   u_m = C - L_m(P)
+   $$
 
-% PopObj: [n_pop x M] objective matrix of the candidate set
-% PF:     [n_pf  x M] union Pareto front
-% dm_num: number of decision makers
-% epsilon: [1 x dm_num] concession thresholds
-% lambda:  user-defined penalty weight (scalar or [1 x dm_num] vector)
+### Nash Score
 
-dm_num = 2;
-epsilon = [0, 0];
-lambda = 10;
+The final Nash-product score is
 
-score = nash_score(PopObj, PF, dm_num, epsilon, lambda);
+$$
+\boxed{
+\Psi_{\mathrm{NP}}
+=
+\prod_{m=1}^{M}u_m
+}
+$$
 
-[score, details] = nash_score(PopObj, PF, dm_num, epsilon, lambda, ...
-    'Metric', 'GD');
+---
 
-fprintf('Nash Score = %.6f\n', score);
-disp(details.utility);
-disp(details.L_m);
-```
+# 📁 Files
 
-### Input Layout
+The repository is organized as follows:
 
-- Columns of `PopObj` and `PF` are ordered by decision maker. With `dm_num` decision makers and $k$ objectives each, the total number of columns is $M = \text{dm num} \times k$.
-- Decision maker $m$ uses columns `(m-1)*k+1 : m*k`.
-- `epsilon_values` must have length `dm_num`.
-- `lambda` must be a non-negative scalar (shared by all decision makers) or a `[1 x dm_num]` vector.
-
-### Optional Parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `'Metric'` | `'IGD'` | Convergence measure: `'IGD'` or `'GD'` |
-| `'ObjPerDM'` | inferred | Number of objectives per decision maker |
-| `'PFSampleSize'` | `2000` | PF subsampling limit for IGD/GD and offset computation |
-| `'OffsetPFSample'` | `5000` | PF subsampling limit inside `compute_offset_to_pf` |
-
-## Design Notes
-
-- **Normalized offset:** Objectives are scaled by $f_i^{\max}$ so different scales are comparable when measuring concession.
-- **Concession penalty:** Solutions that exceed a decision maker's concession threshold are penalized.
-- **Product aggregation:** Multiplying utilities encourages balanced satisfaction across decision makers—a poor result for any single decision maker strongly reduces the overall score.
+```text
+2026ZhaoNash/
+│
+├── MPMOP/
+│   └── MPMOP benchmark problems
+│
+├── MPDMP/
+│   └── MPDMP benchmark problems
+│
+├── nash-score/
+│   ├── nash_score.m
+│   └── compute_offset_to_pf.m
+│
+└── README.md
 
