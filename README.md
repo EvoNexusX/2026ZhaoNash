@@ -28,9 +28,9 @@ This code links to the paper:
 
 **Status:** Accepted for publication
 
-This is the official repository for the paper:
+Paper Link:
 
-https://arxiv.org/abs/2601.22497
+https://ieeexplore.ieee.org/document/11719690
 
 ---
 
