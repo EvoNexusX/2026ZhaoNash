@@ -1,5 +1,5 @@
 function [score, details] = nash_score(PopObj, PF, dm_num, gamma_threshold, lambda, varargin)
-%NASH_SCORE Fairness-aware evaluation, paper Section IV, Eqs. (5)-(9).
+%NASH_SCORE Compute a fairness-aware Nash product for multiple decision makers.
 % POPOBJ: contiguous objective blocks for each DM. PF: cell of individual
 % fronts, or matrix of contiguous individual-front blocks (not a joint PF).
 % Required name-value pairs: 'C' (fixed common utility constant),
@@ -7,9 +7,8 @@ function [score, details] = nash_score(PopObj, PF, dm_num, gamma_threshold, lamb
 % either 'ReferenceSets' (cell {j}=F(PS_j), evaluated for ALL DMs) or 'Delta'
 % (precomputed reference deviations). Never compare different DMs' PFs directly.
 % Optional: 'Metric' ('IGD' default or 'GD'); 'ObjPerDM' (scalar or vector).
-% D_m uses normalized Chebyshev distance as an explicit implementation
-% convention; the main paper leaves normalized distance abstract. IGD/GD
-% use Euclidean distances in supplied objective units. No random sampling.
+% Concessions use normalized Chebyshev distance. IGD/GD use Euclidean
+% distances in supplied objective units. No random sampling is performed.
 % lambda and Delta must be strictly positive; C must exceed total losses.
 % Each candidate row contributes to the accumulated penalty.
     p = inputParser;
@@ -29,6 +28,10 @@ function [score, details] = nash_score(PopObj, PF, dm_num, gamma_threshold, lamb
         if iscell(PF)
             counts = cellfun(@(x) size(x,2),PF);
         else
+            if mod(K,dm_num) ~= 0
+                error('nash_score:MissingObjPerDM', ...
+                    'For unequal objective counts, supply ObjPerDM (e.g. [2 3]) or a cell PF with one front per DM.');
+            end
             counts = repmat(K/dm_num,1,dm_num);
         end
     elseif isscalar(counts)
@@ -99,7 +102,7 @@ function [score, details] = nash_score(PopObj, PF, dm_num, gamma_threshold, lamb
     delta = double(delta(:)');
     if any(delta == 0)
         error('nash_score:DegenerateDelta', ...
-            'Eq. (7) requires positive Delta. Check the cross-evaluated reference sets; no zero-denominator rule is specified in the paper.');
+            'Delta must be positive to compute concessions. Check the cross-evaluated reference sets.');
     end
     gamma = zeros(size(PopObj,1),dm_num);
     loss = zeros(1,dm_num);
@@ -115,14 +118,14 @@ function [score, details] = nash_score(PopObj, PF, dm_num, gamma_threshold, lamb
         gamma(:,m) = offsets/delta(m);
     end
     violation = max(0,bsxfun(@minus,gamma,gamma_threshold));
-    penalty = sum(violation,1);                  % Eq. (9): sum, not mean
-    total_loss = loss + lambda.*penalty;         % Section IV-C: penalized loss
-    utility = C-total_loss;                     % Eq. (5): linear utility
+    penalty = sum(violation,1);
+    total_loss = loss + lambda.*penalty;
+    utility = C-total_loss;
     if any(~isfinite(total_loss)) || any(utility <= 0)
         error('nash_score:NonpositiveUtility', ...
             'C must exceed every total loss (largest: %.17g). Use the SAME C for every compared set.',max(total_loss));
     end
-    score = prod(utility);                      % Eq. (6): raw Nash product
+    score = prod(utility);
     details = struct('metric',metric,'C',C,'lambda',lambda, ...
         'gamma_threshold',gamma_threshold,'objective_scale',scale,'delta',delta, ...
         'concession',gamma,'violation',violation,'L_base',loss, ...

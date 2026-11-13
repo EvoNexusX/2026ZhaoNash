@@ -2,8 +2,7 @@ function offsets = compute_offset_to_pf(points,pf,objective_scale)
 %COMPUTE_OFFSET_TO_PF Minimum normalized Chebyshev distance to sampled PF.
 % D(x,PF) = min_y max_k abs(x_k-y_k)/objective_scale_k.
 % Scale must be fixed, positive and shared by all compared candidate sets.
-% The paper leaves normalized distance abstract; this is an implementation
-% convention. No random PF subsampling or candidate-dependent scaling.
+% No random PF subsampling or candidate-dependent scaling is performed.
     validateattributes(points,{'numeric'},{'real','finite','2d'});
     validateattributes(pf,{'numeric'},{'real','finite','2d','nonempty','ncols',size(points,2)});
     validateattributes(objective_scale,{'numeric'}, ...
