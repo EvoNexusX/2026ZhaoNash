@@ -1,52 +1,19 @@
-function offsets = compute_offset_to_pf(points, pf, f_max, max_pf_size)
-%COMPUTE_OFFSET_TO_PF Normalized Chebyshev offset from points to a PF.
-%
-%   OFFSETS = COMPUTE_OFFSET_TO_PF(POINTS, PF, F_MAX) returns, for each row
-%   in POINTS, the minimum offset to any point on PF:
-%
-%       offset(x, y) = max_i |f_i(x) - f_i(y)| / f_i_max
-%       offset(x, PF) = min_{y in PF} offset(x, y)
-%
-%   F_MAX is a 1-by-n_obj vector of per-objective normalization factors
-%   (typically the maximum objective value in the feasible range).
-%
-%   OFFSETS = COMPUTE_OFFSET_TO_PF(..., MAX_PF_SIZE) optionally subsamples PF
-%   to at most MAX_PF_SIZE points for faster computation (default: 5000).
-
-    if nargin < 4
-        max_pf_size = 5000;
+function offsets = compute_offset_to_pf(points,pf,objective_scale)
+%COMPUTE_OFFSET_TO_PF Minimum normalized Chebyshev distance to sampled PF.
+% D(x,PF) = min_y max_k abs(x_k-y_k)/objective_scale_k.
+% Scale must be fixed, positive and shared by all compared candidate sets.
+% The paper leaves normalized distance abstract; this is an implementation
+% convention. No random PF subsampling or candidate-dependent scaling.
+    validateattributes(points,{'numeric'},{'real','finite','2d'});
+    validateattributes(pf,{'numeric'},{'real','finite','2d','nonempty','ncols',size(points,2)});
+    validateattributes(objective_scale,{'numeric'}, ...
+        {'real','finite','vector','positive','numel',size(points,2)});
+    points = double(points);
+    pf = double(pf);
+    objective_scale = double(objective_scale(:)');
+    offsets = zeros(size(points,1),1);
+    for i = 1:size(points,1)
+        diff = abs(bsxfun(@minus,pf,points(i,:)));
+        offsets(i) = min(max(bsxfun(@rdivide,diff,objective_scale),[],2));
     end
-
-    n_points = size(points, 1);
-    n_pf = size(pf, 1);
-    n_obj = size(points, 2);
-
-    if n_points == 0
-        offsets = zeros(0, 1);
-        return;
-    end
-
-    if n_pf == 0
-        offsets = inf(n_points, 1);
-        return;
-    end
-
-    if numel(f_max) ~= n_obj
-        error('compute_offset_to_pf:InvalidFMax', ...
-            'f_max length (%d) must match objective count (%d).', numel(f_max), n_obj);
-    end
-
-    if n_pf > max_pf_size
-        sample_idx = randperm(n_pf, max_pf_size);
-        pf = pf(sample_idx, :);
-        n_pf = max_pf_size;
-    end
-
-    points_3d = reshape(points, [n_points, 1, n_obj]);
-    pf_3d = reshape(pf, [1, n_pf, n_obj]);
-    f_max_3d = reshape(f_max, [1, 1, n_obj]);
-
-    norm_diff = abs(points_3d - pf_3d) ./ f_max_3d;
-    offset_matrix = max(norm_diff, [], 3);
-    offsets = min(offset_matrix, [], 2);
 end

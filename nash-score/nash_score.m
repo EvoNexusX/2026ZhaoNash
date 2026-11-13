@@ -1,255 +1,142 @@
-function [score, details] = nash_score(PopObj, PF, dm_num, epsilon_values, lambda, varargin)
-%NASH_SCORE Compute the Nash Score for a multi-party multi-objective solution set.
-%
-%   SCORE = NASH_SCORE(PopObj, PF, DM_NUM, EPSILON, LAMBDA) evaluates a
-%   candidate population PopObj against the union Pareto front PF for a
-%   problem with DM_NUM decision makers. EPSILON is a 1-by-DM_NUM vector of
-%   concession thresholds. LAMBDA is a user-defined penalty weight (scalar
-%   applied to all decision makers, or a 1-by-DM_NUM vector).
-%
-%   [SCORE, DETAILS] = NASH_SCORE(...) also returns per-decision-maker
-%   diagnostics (convergence, penalty, loss, utility, etc.).
-%
-%   Name-value pairs (optional):
-%       'Metric'         - 'IGD' (default) or 'GD'
-%       'ObjPerDM'       - objectives per decision maker; inferred from
-%                          size(PF,2)/dm_num when omitted
-%       'PFSampleSize'   - max PF points used for sampling (default: 2000)
-%       'OffsetPFSample' - max PF points for offset computation (default: 5000)
-%
-%   Nash Score definition (higher is better, no post-hoc normalization):
-%     1. Offset from point x to PF point y:
-%            max_i |f_i(x) - f_i(y)| / f_i_max
-%     2. Offset from x to PF: min over all y on PF
-%     3. max_offset_m: max offset from other DMs' PFs to DM m's PF
-%     4. Concession epsilon_m(v) = offset(v, PF_m) / max_offset_m
-%     5. Penalty phi(epsilon) = max(0, epsilon - epsilon_threshold)
-%     6. mu_ref_m: max distance from any point on other DMs' PFs to PF_m
-%        (defaults to 1 in normalized space when zero)
-%     7. Point penalty: ell_m^pen(v) = mu_ref_m * phi(epsilon_m(v))
-%     8. Population penalty: L_m^pen = mean(ell_m^pen)
-%     9. Total loss: L_m = mu_m + lambda_m * L_m^pen
-%    10. Utility: utility_m = exp(-L_m)
-%    11. Nash Score = prod(utility_m)
-%
-%   Inputs:
-%       PopObj         - [n_pop x M] objective matrix of the candidate set
-%       PF             - [n_pf  x M] union Pareto front (all objectives)
-%       dm_num         - number of decision makers
-%       epsilon_values - [1 x dm_num] concession thresholds
-%       lambda         - penalty weight(s); scalar or [1 x dm_num] vector
-%
-%   Outputs:
-%       score   - scalar Nash Score (product of decision-maker utilities)
-%       details - struct with fields per decision maker and aggregates
-
+function [score, details] = nash_score(PopObj, PF, dm_num, gamma_threshold, lambda, varargin)
+%NASH_SCORE Fairness-aware evaluation, paper Section IV, Eqs. (5)-(9).
+% POPOBJ: contiguous objective blocks for each DM. PF: cell of individual
+% fronts, or matrix of contiguous individual-front blocks (not a joint PF).
+% Required name-value pairs: 'C' (fixed common utility constant),
+% 'ObjectiveScale' (fixed positive scales for all objective columns), and
+% either 'ReferenceSets' (cell {j}=F(PS_j), evaluated for ALL DMs) or 'Delta'
+% (precomputed reference deviations). Never compare different DMs' PFs directly.
+% Optional: 'Metric' ('IGD' default or 'GD'); 'ObjPerDM' (scalar or vector).
+% D_m uses normalized Chebyshev distance as an explicit implementation
+% convention; the main paper leaves normalized distance abstract. IGD/GD
+% use Euclidean distances in supplied objective units. No random sampling.
+% lambda and Delta must be strictly positive; C must exceed total losses.
+% Each candidate row contributes to the accumulated penalty.
     p = inputParser;
-    addRequired(p, 'PopObj', @(x) isnumeric(x) && ismatrix(x));
-    addRequired(p, 'PF', @(x) isnumeric(x) && ismatrix(x));
-    addRequired(p, 'dm_num', @(x) isnumeric(x) && isscalar(x) && x >= 1);
-    addRequired(p, 'epsilon_values', @(x) isnumeric(x) && isvector(x));
-    addRequired(p, 'lambda', @(x) isnumeric(x) && isvector(x));
-    addParameter(p, 'Metric', 'IGD', @(x) any(strcmpi(x, {'IGD', 'GD'})));
-    addParameter(p, 'ObjPerDM', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 1));
-    addParameter(p, 'PFSampleSize', 2000, @(x) isnumeric(x) && isscalar(x) && x >= 1);
-    addParameter(p, 'OffsetPFSample', 5000, @(x) isnumeric(x) && isscalar(x) && x >= 1);
-    parse(p, PopObj, PF, dm_num, epsilon_values, lambda, varargin{:});
-
-    metric = p.Results.Metric;
-    lambda_penalty = p.Results.lambda(:)';
-    pf_sample_size = round(p.Results.PFSampleSize);
-    offset_pf_sample = round(p.Results.OffsetPFSample);
-    dm_num = round(dm_num);
-
-    PopObj = sanitize_objectives(PopObj);
-    PF = sanitize_objectives(PF);
-
-    if isempty(PopObj) || isempty(PF)
-        score = 0;
-        details = empty_details(dm_num);
-        return;
-    end
-
-    M = size(PF, 2);
-    if size(PopObj, 2) ~= M
-        error('nash_score:DimMismatch', ...
-            'PopObj has %d objectives but PF has %d.', size(PopObj, 2), M);
-    end
-
-    if mod(M, dm_num) ~= 0
-        error('nash_score:InvalidLayout', ...
-            'Total objective count (%d) must be divisible by dm_num (%d).', M, dm_num);
-    end
-
-    if isempty(p.Results.ObjPerDM)
-        obj_per_dm = M / dm_num;
-    else
-        obj_per_dm = p.Results.ObjPerDM;
-        if obj_per_dm * dm_num ~= M
-            error('nash_score:InvalidObjPerDM', ...
-                'ObjPerDM (%d) * dm_num (%d) must equal M (%d).', obj_per_dm, dm_num, M);
+    addParameter(p,'C',[]);
+    addParameter(p,'ObjectiveScale',[]);
+    addParameter(p,'ReferenceSets',{});
+    addParameter(p,'Delta',[]);
+    addParameter(p,'Metric','IGD');
+    addParameter(p,'ObjPerDM',[]);
+    parse(p,varargin{:});
+    validateattributes(PopObj,{'numeric'},{'real','finite','2d','nonempty'});
+    validateattributes(dm_num,{'numeric'},{'real','finite','scalar','integer','>=',2});
+    PopObj = double(PopObj);
+    K = size(PopObj,2);
+    counts = p.Results.ObjPerDM;
+    if isempty(counts)
+        if iscell(PF)
+            counts = cellfun(@(x) size(x,2),PF);
+        else
+            counts = repmat(K/dm_num,1,dm_num);
         end
+    elseif isscalar(counts)
+        counts = repmat(counts,1,dm_num);
     end
-
-    epsilon_values = epsilon_values(:)';
-    if numel(epsilon_values) ~= dm_num
-        error('nash_score:InvalidEpsilon', ...
-            'epsilon_values length (%d) must equal dm_num (%d).', numel(epsilon_values), dm_num);
+    validateattributes(counts,{'numeric'},{'real','finite','vector','integer','positive','numel',dm_num});
+    counts = double(counts(:)');
+    if sum(counts) ~= K
+        error('nash_score:InvalidLayout','ObjPerDM must sum to the objective count.');
     end
-
-    if isscalar(lambda_penalty)
-        lambda_penalty = repmat(lambda_penalty, 1, dm_num);
-    elseif numel(lambda_penalty) ~= dm_num
-        error('nash_score:InvalidLambda', ...
-            'lambda must be a scalar or a vector of length dm_num (%d).', dm_num);
+    edges = [0 cumsum(counts)];
+    if ~iscell(PF)
+        validateattributes(PF,{'numeric'},{'real','finite','2d','nonempty','ncols',K});
+        PF = arrayfun(@(m) PF(:,edges(m)+1:edges(m+1)),1:dm_num,'UniformOutput',false);
     end
-
-    if any(lambda_penalty < 0)
-        error('nash_score:InvalidLambda', 'lambda values must be non-negative.');
+    if numel(PF) ~= dm_num
+        error('nash_score:InvalidPF','PF must contain one individual front per DM.');
     end
-
-    [score, details] = compute_nash_score(PopObj, PF, dm_num, obj_per_dm, ...
-        metric, epsilon_values, lambda_penalty, pf_sample_size, offset_pf_sample);
-end
-
-function [score, details] = compute_nash_score(PopObj, PF, dm_num, obj_per_dm, ...
-        metric, epsilon_values, lambda_penalty, pf_sample_size, offset_pf_sample)
-
-    pf_per_dm = cell(1, dm_num);
-    pop_per_dm = cell(1, dm_num);
-    for dm = 1:dm_num
-        cols = (dm - 1) * obj_per_dm + 1 : dm * obj_per_dm;
-        pf_per_dm{dm} = PF(:, cols);
-        pop_per_dm{dm} = PopObj(:, cols);
+    for m = 1:dm_num
+        validateattributes(PF{m},{'numeric'},{'real','finite','2d','nonempty','ncols',counts(m)});
+        PF{m} = double(PF{m});
     end
-
-    fi_max = cell(1, dm_num);
-    for dm = 1:dm_num
-        combined = [pf_per_dm{dm}; pop_per_dm{dm}];
-        fi_max{dm} = max(combined, [], 1);
-        fi_max{dm}(fi_max{dm} == 0) = eps;
+    validateattributes(gamma_threshold,{'numeric'},{'real','finite','vector','numel',dm_num,'>=',0,'<=',1});
+    validateattributes(lambda,{'numeric'},{'real','finite','vector','positive','nonempty'});
+    if isscalar(lambda), lambda = repmat(lambda,1,dm_num); end
+    if numel(lambda) ~= dm_num
+        error('nash_score:InvalidLambda','lambda must be scalar or have one entry per DM.');
     end
-
-    max_offset = zeros(1, dm_num);
-    mu_ref = zeros(1, dm_num);
-
-    for dm = 1:dm_num
-        pf_dm_sampled = sample_rows(pf_per_dm{dm}, pf_sample_size);
-        fm_max = fi_max{dm};
-
-        other_offsets = [];
-        other_point_distances = [];
-
-        for other_dm = 1:dm_num
-            if other_dm == dm
-                continue;
+    lambda = double(lambda(:)');
+    gamma_threshold = double(gamma_threshold(:)');
+    C = p.Results.C;
+    if isempty(C)
+        error('nash_score:MissingC','Supply a fixed common C greater than all compared total losses.');
+    end
+    validateattributes(C,{'numeric'},{'real','finite','scalar','positive'});
+    scale = p.Results.ObjectiveScale;
+    if isempty(scale)
+        error('nash_score:MissingScale','Supply fixed positive ObjectiveScale for all objective columns.');
+    end
+    validateattributes(scale,{'numeric'},{'real','finite','vector','numel',K,'positive'});
+    scale = double(scale(:)');
+    metric = validatestring(p.Results.Metric,{'IGD','GD'});
+    delta = p.Results.Delta;
+    refs = p.Results.ReferenceSets;
+    if ~isempty(delta) && ~isempty(refs)
+        error('nash_score:AmbiguousReference','Supply either ReferenceSets or Delta, not both.');
+    end
+    if isempty(delta)
+        if ~iscell(refs) || numel(refs) ~= dm_num
+            error('nash_score:MissingReference','Supply ReferenceSets{j}=F(PS_j), or precomputed Delta.');
+        end
+        for j = 1:dm_num
+            validateattributes(refs{j},{'numeric'},{'real','finite','2d','nonempty','ncols',K});
+        end
+        delta = zeros(1,dm_num);
+        for m = 1:dm_num
+            cols = edges(m)+1:edges(m+1);
+            for j = 1:dm_num
+                if j ~= m
+                    % PS_j must be evaluated through F_m, in DM m's space.
+                    offsets = compute_offset_to_pf(double(refs{j}(:,cols)),PF{m},scale(cols));
+                    delta(m) = max(delta(m),max(offsets));
+                end
             end
-
-            other_pf_sampled = sample_rows(pf_per_dm{other_dm}, pf_sample_size);
-
-            offsets_other_to_dm = compute_offset_to_pf( ...
-                other_pf_sampled, pf_dm_sampled, fm_max, offset_pf_sample);
-            other_offsets = [other_offsets; offsets_other_to_dm]; %#ok<AGROW>
-
-            dmat = pdist2(other_pf_sampled, pf_dm_sampled);
-            min_dist_per_point = min(dmat, [], 2);
-            other_point_distances = [other_point_distances; min_dist_per_point]; %#ok<AGROW>
         end
-
-        if ~isempty(other_offsets)
-            max_offset(dm) = max(other_offsets);
+    end
+    validateattributes(delta,{'numeric'},{'real','finite','vector','numel',dm_num,'nonnegative'});
+    delta = double(delta(:)');
+    if any(delta == 0)
+        error('nash_score:DegenerateDelta', ...
+            'Eq. (7) requires positive Delta. Check the cross-evaluated reference sets; no zero-denominator rule is specified in the paper.');
+    end
+    gamma = zeros(size(PopObj,1),dm_num);
+    loss = zeros(1,dm_num);
+    for m = 1:dm_num
+        cols = edges(m)+1:edges(m+1);
+        points = PopObj(:,cols);
+        if strcmp(metric,'IGD')
+            loss(m) = mean(nearest_euclidean(PF{m},points));
         else
-            max_offset(dm) = eps;
+            loss(m) = mean(nearest_euclidean(points,PF{m}));
         end
-        if max_offset(dm) == 0
-            max_offset(dm) = eps;
-        end
-
-        if ~isempty(other_point_distances)
-            mu_ref(dm) = max(other_point_distances);
-        else
-            mu_ref(dm) = 0;
-        end
-
-        if mu_ref(dm) < 1e-10
-            mu_ref(dm) = 1.0;
-        end
+        offsets = compute_offset_to_pf(points,PF{m},scale(cols));
+        gamma(:,m) = offsets/delta(m);
     end
-
-    dm_utilities = zeros(1, dm_num);
-    mu_m_vals = zeros(1, dm_num);
-    L_pen_vals = zeros(1, dm_num);
-    L_m_vals = zeros(1, dm_num);
-
-    for dm = 1:dm_num
-        pf_dm_sampled = sample_rows(pf_per_dm{dm}, pf_sample_size);
-        pop_dm = pop_per_dm{dm};
-        fm_max = fi_max{dm};
-
-        switch upper(metric)
-            case 'IGD'
-                dmat = pdist2(pf_dm_sampled, pop_dm);
-                mu_m = mean(min(dmat, [], 2));
-            case 'GD'
-                dmat = pdist2(pop_dm, pf_dm_sampled);
-                mu_m = mean(min(dmat, [], 2));
-        end
-
-        pop_offsets = compute_offset_to_pf(pop_dm, pf_dm_sampled, fm_max, offset_pf_sample);
-        concessions = pop_offsets / max_offset(dm);
-        phi_values = max(0, concessions - epsilon_values(dm));
-        point_penalties = mu_ref(dm) * phi_values;
-        L_pen = mean(point_penalties);
-        L_m = mu_m + lambda_penalty(dm) * L_pen;
-        dm_utilities(dm) = exp(-L_m);
-
-        mu_m_vals(dm) = mu_m;
-        L_pen_vals(dm) = L_pen;
-        L_m_vals(dm) = L_m;
+    violation = max(0,bsxfun(@minus,gamma,gamma_threshold));
+    penalty = sum(violation,1);                  % Eq. (9): sum, not mean
+    total_loss = loss + lambda.*penalty;         % Section IV-C: penalized loss
+    utility = C-total_loss;                     % Eq. (5): linear utility
+    if any(~isfinite(total_loss)) || any(utility <= 0)
+        error('nash_score:NonpositiveUtility', ...
+            'C must exceed every total loss (largest: %.17g). Use the SAME C for every compared set.',max(total_loss));
     end
-
-    score = prod(dm_utilities);
-
-    if nargout >= 2
-        details = struct();
-        details.metric = upper(metric);
-        details.lambda = lambda_penalty;  % [1 x dm_num]
-        details.epsilon_threshold = epsilon_values;
-        details.max_offset = max_offset;
-        details.mu_ref = mu_ref;
-        details.mu_m = mu_m_vals;
-        details.L_pen = L_pen_vals;
-        details.L_m = L_m_vals;
-        details.utility = dm_utilities;
-        details.dm_num = dm_num;
-        details.obj_per_dm = obj_per_dm;
-    end
+    score = prod(utility);                      % Eq. (6): raw Nash product
+    details = struct('metric',metric,'C',C,'lambda',lambda, ...
+        'gamma_threshold',gamma_threshold,'objective_scale',scale,'delta',delta, ...
+        'concession',gamma,'violation',violation,'L_base',loss, ...
+        'L_pen',penalty,'L_total',total_loss,'utility',utility, ...
+        'log_score',sum(log(utility)),'meanIGD',NaN, ...
+        'dm_num',dm_num,'obj_per_dm',counts);
+    if strcmp(metric,'IGD'), details.meanIGD = mean(loss); end
 end
 
-function X = sanitize_objectives(X)
-    X = X(~any(isnan(X) | isinf(X), 2), :);
-end
-
-function sampled = sample_rows(X, max_rows)
-    if size(X, 1) > max_rows
-        sample_idx = randperm(size(X, 1), max_rows);
-        sampled = X(sample_idx, :);
-    else
-        sampled = X;
+function distances = nearest_euclidean(points,reference)
+% Bounded working memory, without Statistics and Machine Learning Toolbox.
+    distances = zeros(size(points,1),1);
+    for i = 1:size(points,1)
+        diff = bsxfun(@minus,reference,points(i,:));
+        distances(i) = min(sqrt(sum(diff.^2,2)));
     end
-end
-
-function details = empty_details(dm_num)
-    details = struct();
-    details.metric = '';
-    details.lambda = NaN;
-    details.epsilon_threshold = nan(1, dm_num);
-    details.max_offset = nan(1, dm_num);
-    details.mu_ref = nan(1, dm_num);
-    details.mu_m = nan(1, dm_num);
-    details.L_pen = nan(1, dm_num);
-    details.L_m = nan(1, dm_num);
-    details.utility = nan(1, dm_num);
-    details.dm_num = dm_num;
-    details.obj_per_dm = NaN;
 end
