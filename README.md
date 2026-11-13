@@ -76,14 +76,6 @@ For joint-objective columns ordered as `[F_1, F_2, ..., F_M]`, supply:
 | `'ObjPerDM'` | Optional objective counts, scalar or vector; inferred from cell fronts, or equal matrix blocks |
 | `'Metric'` | `'IGD'` (default), or `'GD'` |
 
-A numeric `PF` matrix is accepted for compatibility when contiguous blocks represent each DM's **individual** front with the same row count. A union of joint objective vectors, or a front of strictly common solutions, must not be passed as if it were a set of individual fronts. Benchmark `PF()` methods should be checked for their reference semantics before being used with this evaluator. They do not by themselves supply the cross-evaluation data.
-
-Use the same fronts, reference deviations, scales, weights, thresholds, base metric and `C` for every set in a comparison. In particular, do not choose `C` separately for each algorithm or run. If any utility is nonpositive, the function raises an error rather than clipping utilities, changing `C` automatically. `details.log_score` supports comparisons if the raw product underflows or overflows.
-
-If `Delta(m)==0` and all candidate deviations for that DM are exactly zero, the implementation assigns zero concessions. Otherwise it raises an error: the article's ratio is undefined in this degenerate case. A documented, positive external `Delta` can be supplied as an explicit extension; no hidden epsilon denominator is inserted.
-
-No PF subsampling occurs. Evaluation is deterministic and uses bounded working memory. Invalid or nonfinite data are rejected rather than silently dropping rows. Every candidate row contributes to the accumulated penalty; duplicate objective rows remain because distinct decision vectors can share objective values. Population size therefore affects the sum penalty and should follow a fixed experimental protocol. The function evaluates the supplied population; it does not extract the generalized consensus set or silently filter dominated rows.
-
 ---
 
 # 📁 Files
