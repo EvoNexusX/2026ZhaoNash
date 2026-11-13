@@ -95,5 +95,8 @@ The repository is organized as follows:
 │   ├── nash_score.m
 │   └── compute_offset_to_pf.m
 │
+├── tests/
+│   ├── test_nash_score.m
+|
 └── README.md
 
