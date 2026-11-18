@@ -100,4 +100,6 @@ The repository is organized as follows:
 |
 └── README.md
 
+---
+
 **Implementation update:** Corrections to penalty accumulation, cross-party reference deviations and unequal objective counts may change the reproduced $\Psi^{\mathrm{NP}}$ scores, summary statistics, algorithm rankings and associated statistical comparisons for the paper's MPMOP and MPDMP experiments; the extent of any differences from the published results requires rescoring the original saved solution sets with the experimental settings.
