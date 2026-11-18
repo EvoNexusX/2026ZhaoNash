@@ -76,7 +76,9 @@ For joint-objective columns ordered as `[F_1, F_2, ..., F_M]`, supply:
 | `'ObjPerDM'` | Optional objective counts, scalar or vector; inferred from cell fronts, or equal matrix blocks |
 | `'Metric'` | `'IGD'` (default), or `'GD'` |
 
-**Implementation update:** Corrections to penalty accumulation, cross-party reference deviations and unequal objective counts may change the reproduced $\Psi^{\mathrm{NP}}$ scores, summary statistics, algorithm rankings and associated statistical comparisons for the paper's MPMOP and MPDMP experiments; the extent of any differences from the published results requires rescoring the original saved solution sets with the experimental settings.
+
+**Implementation update"** Corrections to penalty accumulation, cross-party reference deviations and unequal objective counts may change the reproduced $\Psi^{\mathrm{NP}}$ scores, summary statistics, algorithm rankings and associated statistical comparisons for the papaer's MPMOP and MPDMP experiments.
+
 ---
 
 # 📁 Files
