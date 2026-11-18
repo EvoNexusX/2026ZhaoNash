@@ -77,7 +77,7 @@ For joint-objective columns ordered as `[F_1, F_2, ..., F_M]`, supply:
 | `'Metric'` | `'IGD'` (default), or `'GD'` |
 
 
-**Implementation update"** Corrections to penalty accumulation, cross-party reference deviations and unequal objective counts may change the reproduced $\Psi^{\mathrm{NP}}$ scores, summary statistics, algorithm rankings and associated statistical comparisons for the papaer's MPMOP and MPDMP experiments.
+**Implementation update:** Corrections to penalty accumulation, cross-party reference deviations and unequal objective counts may change the reproduced $\Psi^{\mathrm{NP}}$ scores, summary statistics, algorithm rankings and associated statistical comparisons for the papaer's MPMOP and MPDMP experiments.
 
 ---
 
